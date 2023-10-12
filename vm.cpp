@@ -9,7 +9,7 @@ int main(int argc, char const *argv[]) {
     VM vm;
     auto result = vm.execute(R"(42)");
 
-    log(result.number);
+    log(AS_CPPSTRING(result));
 
     std::cout << "All done!\n";
     return 0;
