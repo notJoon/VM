@@ -18,6 +18,14 @@ struct Value {
     };
 };
 
+// ----------------------------
+// Constructors
+
 #define NUMBER(value) ((Value){ValueType::NUMBER, .number = value})
+
+// ----------------------------
+// Accessors
+
+#define AS_NUMBER(Value) ((double)(Value).number)
 
 #endif

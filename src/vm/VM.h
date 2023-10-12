@@ -1,3 +1,5 @@
+// clang++ -std=c++17 -Wall -ggdb3 ./vm.cpp -o ./VM && ./VM   
+
 /**
  * @file vm.h
  * 
@@ -28,6 +30,17 @@
  * @brief Stack top (stack overflow after exceeding this limit)
  */
 #define STACK_LIMIT 512
+
+/**
+ * @brief Binary Operation
+ */
+// stack pops in reverse order, So op2 is popped first
+#define BINARY_OP(op)                   \
+    do {                                \
+        auto op2 = AS_NUMBER(pop());    \
+        auto op1 = AS_NUMBER(pop());    \
+        push(NUMBER(op1 op op2));       \
+    } while (false)
 
 class VM {
     public:
@@ -65,11 +78,18 @@ class VM {
             // 2, Compile program to bytecode
             // code = compiler->compile(program);
 
-            constants.push_back(NUMBER(42));
-            code = {OP_CONST, 0, OP_HALT};
+            constants.push_back(NUMBER(10));
+            constants.push_back(NUMBER(3));
+            constants.push_back(NUMBER(10));
+
+            // (- (* 10 3) 10)
+            code = {OP_CONST, 0, OP_CONST, 1, OP_MUL, OP_CONST, 2, OP_SUB, OP_HALT};
 
             // Set instruction pointer to the first instruction
             ip = &code[0];
+
+            // Initialize stack pointer
+            sp = &stack[0];
 
             return eval();
         }
@@ -80,13 +100,38 @@ class VM {
         Value eval() {
             for (;;) {
                 auto opcode = READ_BYTE();
-                log(opcode);
+                // log(opcode);
                 switch (opcode) {
                     case OP_HALT:
                         return pop();
+                    // ------------------------------
+                    // Constants
                     case OP_CONST:
                         push(GET_CONST());
                         break;
+
+                    // ------------------------------
+                    // Arithmetic Operations
+                    case OP_ADD: {
+                        BINARY_OP(+);
+                        break;
+                    }
+
+                    case OP_SUB: {
+                        BINARY_OP(-);
+                        break;
+                    }
+
+                    case OP_MUL: {
+                        BINARY_OP(*);
+                        break;
+                    }
+
+                    case OP_DIV: {
+                        BINARY_OP(/);
+                        break;
+                    }
+
                     default:
                         DIE << "Unknown opcode: " << std::hex << opcode;
                 }
