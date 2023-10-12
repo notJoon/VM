@@ -3,34 +3,70 @@
  * 
  * @brief Virtual Machine
  */
-#ifndef __VM_h
-#define __VM_h
+#ifndef VM_h
+#define VM_h
 
+#include<array>
 #include <string>
+#include <iostream>
 
 #include "../bytecode/OpCode.h"
-
+#include "../Logger.h"
+#include "../Value.h"
 /**
  * @brief Reads the current byte in  the bytecode
  * and advances the instruction pointer.
  */
 #define READ_BYTE() *ip++
 
+/**
+ * @brief Get the constant at the given index
+*/
+#define GET_CONST() constants[READ_BYTE()]
+
+/**
+ * @brief Stack top (stack overflow after exceeding this limit)
+ */
+#define STACK_LIMIT 512
+
 class VM {
     public:
         VM() {}
 
         /**
+         * @brief Pushes a value onto the stack
+         */
+        void push(const Value& value) {
+            if ((size_t)(sp - stack.begin()) == STACK_LIMIT) {
+                DIE << "Stack overflow";
+            }
+            *sp = value;
+            sp++;
+        }
+
+        /**
+         * @brief Pop a value from the stack
+        */
+        Value pop() {
+            if (sp == stack.begin()) {
+                DIE << "pop(): Stack underflow";
+            }
+            sp--;
+            return *sp;
+        }
+
+        /**
          * @brief Execute a program
          */
-        void execute(const std::string &program) {
+        Value execute(const std::string& program) {
             // 1. Parse the program
             // auto program = parser->parse(program);
 
             // 2, Compile program to bytecode
             // code = compiler->compile(program);
 
-            code = {OP_HALT};
+            constants.push_back(NUMBER(42));
+            code = {OP_CONST, 0, OP_HALT};
 
             // Set instruction pointer to the first instruction
             ip = &code[0];
@@ -41,11 +77,18 @@ class VM {
         /**
          * @brief Main eval loop
          */
-        void eval() {
+        Value eval() {
             for (;;) {
-                switch (READ_BYTE()) {
+                auto opcode = READ_BYTE();
+                log(opcode);
+                switch (opcode) {
                     case OP_HALT:
-                        return;
+                        return pop();
+                    case OP_CONST:
+                        push(GET_CONST());
+                        break;
+                    default:
+                        DIE << "Unknown opcode: " << std::hex << opcode;
                 }
             }
         }
@@ -53,6 +96,21 @@ class VM {
          * @brief Instruction pointer (aka Program Counter)
          */
         uint8_t* ip;
+
+        /**
+         * @brief Stack pointer(IP).
+        */
+        Value* sp;
+
+        /**
+         * @brief Operand Stack.
+        */
+        std::array<Value, STACK_LIMIT> stack;
+
+        /**
+         * @brief Constant pool
+         */
+        std::vector<Value> constants;
 
         /**
          * @brief Bytecode
